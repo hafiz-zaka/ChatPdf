@@ -40,3 +40,4 @@ dependencies:
       - yarg==0.1.9
   
 prefix: /opt/miniconda3/envs/pdf_env
+
