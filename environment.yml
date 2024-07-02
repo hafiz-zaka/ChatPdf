@@ -3,6 +3,9 @@ channels:
   - defaults
   - conda
   - pytorch
+  - anaconda-channel
+  - conda-forge
+
 
 dependencies:
   - python=3.10
