@@ -1,10 +1,7 @@
 name: pdf_env 
 channels:
   - defaults
-  - conda
-  - pytorch
-  - anaconda-channel
-  - conda-forge
+
 
 
 dependencies:
