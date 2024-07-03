@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Your PDF 🐦📄</title>
+</head>
+<body>
+    <h1>Search Your PDF 🐦📄</h1>
+    <div>
+        <h2>About the App</h2>
+        <p>This is a Generative AI powered Question and Answering app that responds to questions about your PDF File.</p>
+    </div>
+    <form id="question-form">
+        <label for="question">Enter your Question:</label><br>
+        <textarea id="question" name="question" rows="4" cols="50"></textarea><br><br>
+        <button type="submit">Ask</button>
+    </form>
+    <div id="answer-section">
+        <!-- Answers will be displayed here -->
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#question-form').submit(function(event) {
+                event.preventDefault();
+                var formData = $(this).serialize();
+                $.ajax({
+                    type: 'POST',
+                    url: '/ask',
+                    data: formData,
+                    success: function(response) {
+                        $('#answer-section').html('<p><strong>Answer:</strong> ' + response.answer + '</p>');
+                    },
+                    error: function(error) {
+                        console.log(error);
+                        $('#answer-section').html('<p>Error: ' + error.responseText + '</p>');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

@@ -3,6 +3,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PDFMinerLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
+
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'  # Allows duplicate loading of libomp and libiomp
 os.environ['OMP_NUM_THREADS'] = '1'  # Limits the number of threads to avoid conflicts
 def main():

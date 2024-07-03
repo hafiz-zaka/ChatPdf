@@ -1,14 +1,110 @@
+# import os
+# import sys
+# from flask import Flask, request, jsonify, session, render_template
+# import torch
+# from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
+# from langchain_community.vectorstores import Chroma
+# from langchain.chains import RetrievalQA
+# from langchain_huggingface import HuggingFaceEmbeddings, HuggingFacePipeline
+
+# # Set environment variable to avoid issues with duplicate libraries
+# os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+# app = Flask(__name__)
+# app.secret_key = 'your_secret_key'
+# app.config['SESSION_TYPE'] = 'filesystem'
+
+# def load_model_and_tokenizer():
+#     try:
+#         checkpoint = "MBZUAI/LaMini-T5-738M"
+#         tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+#         model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint)
+#         return tokenizer, model
+#     except Exception as e:
+#         print(f"Error in load_model_and_tokenizer: {e}", file=sys.stderr)
+#         raise
+
+# def llm_pipeline():
+#     try:
+#         tokenizer, model = load_model_and_tokenizer()
+#         pipe = pipeline(
+#             'text2text-generation',
+#             model=model,
+#             tokenizer=tokenizer,
+#             max_length=256,
+#             do_sample=True,
+#             temperature=0.3,
+#             top_p=0.95
+#         )
+#         return HuggingFacePipeline(pipeline=pipe)
+#     except Exception as e:
+#         print(f"Error in llm_pipeline: {e}", file=sys.stderr)
+#         raise
+
+# def qa_llm():
+#     try:
+#         llm = llm_pipeline()
+#         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+#         db = Chroma(persist_directory="db", embedding_function=embeddings)
+#         retriever = db.as_retriever()
+#         qa = RetrievalQA.from_chain_type(
+#             llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True
+#         )
+#         return qa
+#     except Exception as e:
+#         print(f"Error in qa_llm: {e}", file=sys.stderr)
+#         raise
+
+# def process_answer(instruction):
+#     try:
+#         qa = qa_llm()
+#         generated_text = qa(instruction)
+#         answer = generated_text['result']
+#         return answer, generated_text
+#     except Exception as e:
+#         print(f"Error in process_answer: {e}", file=sys.stderr)
+#         raise
+
+# @app.route('/')
+# def index():
+#     if 'history' not in session:
+#         session['history'] = []
+#     return render_template('index.html', history=session['history'])
+
+# @app.route('/ask', methods=['POST'])
+# def ask():
+#     data = request.get_json()
+#     question = data.get('question', '')
+#     if question:
+#         try:
+#             answer, metadata = process_answer(question)
+#             session['history'].append({"message": question, "is_user": True})
+#             session['history'].append({"message": answer, "is_user": False})
+#             return jsonify({"answer": answer, "history": session['history']})
+#         except Exception as e:
+#             return jsonify({"error": f"Error in processing: {e}"}), 500
+#     else:
+#         return jsonify({"error": "No question provided"}), 400
+
+# @app.route('/history', methods=['GET'])
+# def get_history():
+#     return jsonify({"history": session.get('history', [])})
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
 import sys
 import os
-import torch
+from flask import Flask, render_template, request, jsonify
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain_huggingface import HuggingFaceEmbeddings, HuggingFacePipeline
-import streamlit as st
 
 # Set environment variable to avoid issues with duplicate libraries
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+
+app = Flask(__name__)
 
 def load_model_and_tokenizer():
     try:
@@ -30,7 +126,7 @@ def llm_pipeline():
             max_length=256,
             do_sample=True,
             temperature=0.3,
-            top_p=0.95
+            top_p=0.9
         )
         return HuggingFacePipeline(pipeline=pipe)
     except Exception as e:
@@ -51,6 +147,19 @@ def qa_llm():
         print(f"Error in qa_llm: {e}", file=sys.stderr)
         raise
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/ask', methods=['POST'])
+def ask():
+    try:
+        question = request.form['question']
+        answer, metadata = process_answer(question)
+        return jsonify({'answer': answer})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 def process_answer(instruction):
     try:
         qa = qa_llm()
@@ -61,40 +170,6 @@ def process_answer(instruction):
         print(f"Error in process_answer: {e}", file=sys.stderr)
         raise
 
-def main():
-    st.title("Search Your PDF 🐦📄")
-    
-    with st.expander("About the App"):
-        st.markdown(
-            """
-            This is a Generative AI powered Question and Answering app that responds to questions about your PDF File.
-            """
-        )
-    
-    if "history" not in st.session_state:
-        st.session_state.history = []
-
-    question = st.text_area("Enter your Question", key="input_text")
-
-    if st.button("Ask"):
-        if question:
-            st.session_state.history.append({"message": question, "is_user": True})
-            st.info("Your Question: " + question)
-            
-            try:
-                answer, metadata = process_answer(question)
-                st.session_state.history.append({"message": answer, "is_user": False})
-                st.write("Answer: " + answer)
-               
-            except Exception as e:
-                st.error(f"Error in processing: {e}")
-
-    if st.session_state.history:
-        for chat in st.session_state.history:
-            if chat["is_user"]:
-                st.markdown(f"**User:** {chat['message']}")
-            else:
-                st.markdown(f"**AI:** {chat['message']}")
-
 if __name__ == '__main__':
-    main()
+    app.run(debug=True)
+
