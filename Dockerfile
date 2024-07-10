@@ -7,15 +7,15 @@ WORKDIR /app
 # Copy the requirements.txt file first to leverage Docker cache
 COPY requirements.txt .
 
-# Install required Python packages
-RUN pip install -r requirements.txt --default-timeout=100 future
+# Install required Python packages with a default timeout
+RUN pip install --default-timeout=100 -r requirements.txt
 
 # Copy the rest of the application files to the container's working directory
 COPY . .
 
-# Expose the port that Streamlit will run on
+# Expose the port the application runs on
 EXPOSE 5000
 
-
-# Command to run your Streamlit application
+# Define the command to run the application
 CMD ["python", "app.py"]
+

@@ -5,3 +5,4 @@ langchain_community==0.2.7
 langchain_huggingface==0.0.3
 torch==2.2.2
 transformers==4.42.3
+
