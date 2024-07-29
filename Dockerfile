@@ -1,5 +1,8 @@
 # Use the official Python image
-FROM python:3.10
+FROM python:3.10-slim
+
+# Set environment variables to ensure Python output is sent straight to terminal (e.g. logs)
+ENV PYTHONUNBUFFERED=1
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -8,7 +11,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install required Python packages with a default timeout
-RUN pip install --default-timeout=100 -r requirements.txt
+RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
 # Copy the rest of the application files to the container's working directory
 COPY . .
@@ -17,5 +20,5 @@ COPY . .
 EXPOSE 5000
 
 # Define the command to run the application
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
 
