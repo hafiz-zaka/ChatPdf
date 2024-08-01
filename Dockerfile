@@ -20,5 +20,5 @@ COPY . .
 EXPOSE 5000
 
 # Define the command to run the application
-CMD ["gunicorn", "app:app"]
+CMD ["gunicorn", "--timeout", "60", "app:app"]
 

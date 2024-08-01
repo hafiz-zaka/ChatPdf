@@ -290,6 +290,8 @@
 
 
 
+# Ensure correct indentation here
+
 import sys
 import os
 from flask import Flask, render_template, request, jsonify
@@ -303,26 +305,19 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 app = Flask(__name__)
 
-tokenizer = None
-model = None
-
+# Load models and pipeline at startup
 def load_model_and_tokenizer():
-    global tokenizer, model
     try:
-        if tokenizer is None or model is None:
-            checkpoint = "MBZUAI/LaMini-T5-738M"
-            tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-            model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint)
+        checkpoint = "MBZUAI/LaMini-T5-738M"
+        tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+        model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint)
+        return tokenizer, model
     except Exception as e:
         print(f"Error in load_model_and_tokenizer: {e}", file=sys.stderr)
         raise
 
-def llm_pipeline():
+def llm_pipeline(tokenizer, model):
     try:
-        load_model_and_tokenizer()
-        if tokenizer is None or model is None:
-            raise ValueError("Tokenizer or model is None after loading.")
-        
         pipe = pipeline(
             'text2text-generation',
             model=model,
@@ -337,12 +332,8 @@ def llm_pipeline():
         print(f"Error in llm_pipeline: {e}", file=sys.stderr)
         raise
 
-def qa_llm():
+def qa_llm(llm):
     try:
-        llm = llm_pipeline()
-        if llm is None:
-            raise ValueError("Failed to create LLM pipeline.")
-        
         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         db = Chroma(persist_directory="db", embedding_function=embeddings)
         retriever = db.as_retriever()
@@ -354,6 +345,11 @@ def qa_llm():
         print(f"Error in qa_llm: {e}", file=sys.stderr)
         raise
 
+# Initialize models and pipeline
+tokenizer, model = load_model_and_tokenizer()
+llm = llm_pipeline(tokenizer, model)
+qa_system = qa_llm(llm)
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -362,18 +358,14 @@ def index():
 def ask():
     try:
         question = request.form['question']
-        answer, metadata = process_answer(question)
+        answer, metadata = process_answer(question, qa_system)
         return jsonify({'answer': answer})
     except Exception as e:
         return jsonify({'error': str(e)})
 
-def process_answer(instruction):
+def process_answer(instruction, qa_system):
     try:
-        qa = qa_llm()
-        if qa is None:
-            raise ValueError("Failed to create QA instance.")
-        
-        generated_text = qa(instruction)
+        generated_text = qa_system(instruction)
         answer = generated_text['result']
         return answer, generated_text
     except Exception as e:
@@ -381,7 +373,7 @@ def process_answer(instruction):
         raise
 
 if __name__ == '__main__':
-port = int(os.environ.get("PORT", 5000))  # Default to 5000 if PORT is not set
+    port = int(os.environ.get("PORT", 5000))  # Default to 5000 if PORT is not set
     app.run(host='0.0.0.0', port=port)
 
 
